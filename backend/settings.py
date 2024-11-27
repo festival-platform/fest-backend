@@ -43,10 +43,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     
     # Сторонние приложения
-    'django.contrib.postgres',
     'rest_framework',
+    # 'rest_framework_simplejwt',
     'djmoney',
     'corsheaders',
     
@@ -165,4 +166,6 @@ CORS_ALLOWED_ORIGINS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-DJANGO_MONEY_DEFAULT_CURRENCY = 'EUR' 
+DJANGO_MONEY_DEFAULT_CURRENCY = 'EUR'
+
+AUTH_USER_MODEL = 'events.User'

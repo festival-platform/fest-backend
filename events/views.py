@@ -14,7 +14,7 @@ class EventViewSet(viewsets.ModelViewSet):
     """
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
 
 class EventDatesView(generics.RetrieveAPIView):
@@ -24,8 +24,8 @@ class EventDatesView(generics.RetrieveAPIView):
     URL: /api/events/{event_id}/dates/
     """
     queryset = Event.objects.all()
-    permission_classes = [IsAuthenticated]
-    serializer_class = EventDateSerializer  
+    serializer_class = EventDateSerializer
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         event_id = kwargs.get('event_id')
