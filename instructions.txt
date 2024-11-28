@@ -2,4 +2,6 @@
 >>> psql postgres
 >>> CREATE ROLE event_user WITH LOGIN PASSWORD 'event_password_user';
 >>> CREATE DATABASE event_booking_db;
+>>> GRANT ALL PRIVILEGES ON SCHEMA public TO event_user;
 >>> GRANT ALL PRIVILEGES ON DATABASE event_booking_db TO event_user;
+>>> ALTER DATABASE event_booking_db OWNER TO event_user;
