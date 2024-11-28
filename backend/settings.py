@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     
     # Сторонние приложения
     'rest_framework',
-    # 'rest_framework_simplejwt',
+    'rest_framework_simplejwt',
     'djmoney',
     'corsheaders',
     
@@ -140,13 +140,11 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': [],  # Убираем все классы аутентификации
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # Разрешаем доступ всем пользователям
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',  # Оставляем текущую настройку
 }
 
 SPECTACULAR_SETTINGS = {
@@ -169,3 +167,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 DJANGO_MONEY_DEFAULT_CURRENCY = 'EUR'
 
 AUTH_USER_MODEL = 'events.User'
+
+
+
+from datetime import timedelta
+from rest_framework_simplejwt.settings import api_settings
+
+SIMPLE_JWT = {
+    'USER_ID_FIELD': 'user_id',  
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
