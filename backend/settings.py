@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     
     # Сторонние приложения
     'rest_framework',
+    'corsheaders',
     'djmoney',
     
     # Наши приложения
