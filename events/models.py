@@ -1,11 +1,10 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
 from djmoney.models.fields import MoneyField
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 
 
-class User(AbstractUser):
+class User(models.Model):
     """
     Модель пользователя.
 

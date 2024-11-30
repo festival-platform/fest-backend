@@ -1,9 +1,15 @@
 from django.contrib import admin
+from django.forms import ModelForm, DateInput
 from .models import Event
+
+class EventAdminForm(ModelForm):
+    class Meta:
+        model = Event
+        fields = '__all__'
+        widgets = {
+            'dates': DateInput(attrs={'placeholder': 'YYYY-MM-DD'}),
+        }
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ('event_id', 'name', 'price', 'capacity', 'booked_seats')
-    search_fields = ('name',)
-    list_filter = ('dates',)
-    
+    form = EventAdminForm
