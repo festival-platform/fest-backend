@@ -40,6 +40,7 @@ class Event(models.Model):
     Поля:
         event_id (AutoField): Уникальный идентификатор мероприятия (автоинкремент).
         name (CharField): Название мероприятия.
+        description (TextField): Описание мероприятия.
         dates (ArrayField): Список доступных дат для бронирования.
         price (MoneyField): Цена за участие в мероприятии.
         capacity (PositiveIntegerField): Общая вместимость мероприятия.
@@ -47,6 +48,7 @@ class Event(models.Model):
     """
     event_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
     dates = ArrayField(
         models.DateField(),
         blank=True,
@@ -59,6 +61,23 @@ class Event(models.Model):
 
     def __str__(self):
         return self.name
+    
+
+class EventImage(models.Model):
+    """
+    Модель изображения мероприятия.
+
+    Хранит изображения, связанные с конкретным мероприятием.
+    
+    Поля:
+        event (ForeignKey): Ссылка на мероприятие, к которому относится изображение.
+        image (ImageField): Поле для загрузки изображения.
+    """
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='event_images/')
+
+    def __str__(self):
+        return f"Изображение для {self.event.name}"
 
 
 def validate_stars(value):
