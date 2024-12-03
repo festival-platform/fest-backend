@@ -12,20 +12,8 @@ class EventDatesSerializer(serializers.Serializer):
     )
     
 
-
-class EventImageSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = EventImage
-        fields = ('image_url',)
-
-    def get_image_url(self, obj):
-        request = self.context.get('request')
-        return request.build_absolute_uri(obj.image.url)
-
 class EventSerializer(serializers.ModelSerializer):
-    images = EventImageSerializer(many=True, read_only=True)
+    images = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -39,3 +27,9 @@ class EventSerializer(serializers.ModelSerializer):
             'booked_seats',
             'images',
         )
+
+    def get_images(self, obj):
+        request = self.context.get('request')
+        image_urls = [request.build_absolute_uri(image.image.url) for image in obj.images.all()]
+        return image_urls
+    
