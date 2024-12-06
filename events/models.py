@@ -49,18 +49,23 @@ class Event(models.Model):
     event_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    dates = ArrayField(
-        models.DateField(),
-        blank=True,
-        default=list,
-        help_text="Список доступных дат для бронирования."
-    )
     price = MoneyField(max_digits=14, decimal_places=2, default_currency='EUR')
     capacity = models.PositiveIntegerField()
     booked_seats = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.name
+    
+
+class EventDate(models.Model):
+    """
+    Модель даты мероприятия
+    """
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='event_dates')
+    date = models.DateField()
+
+    def __str__(self):
+        return str(self.date)
     
 
 class EventImage(models.Model):
@@ -77,7 +82,7 @@ class EventImage(models.Model):
     image = models.ImageField(upload_to='event_images/')
 
     def __str__(self):
-        return f"Изображение для {self.event.name}"
+        return f"Image for {self.event.name}"
 
 
 def validate_stars(value):

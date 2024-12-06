@@ -1,10 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Event
-from .serializers import (
-    EventDatesSerializer, 
-    EventSerializer
-)    
+from .serializers import EventDatesSerializer, EventSerializer
 
 @api_view(["GET"])
 def get_dates(request, event_id):
@@ -18,8 +15,8 @@ def get_dates(request, event_id):
     except Event.DoesNotExist:
         return Response({"error": "Event not found"}, status=404)
 
-    # Используем сериализатор для возвращения данных
-    serializer = EventDatesSerializer({"dates": event.dates})
+    dates = sorted([ed.date for ed in event.event_dates.all()])
+    serializer = EventDatesSerializer({"dates": dates})
     return Response(serializer.data)
 
 

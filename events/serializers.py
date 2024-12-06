@@ -14,6 +14,7 @@ class EventDatesSerializer(serializers.Serializer):
 
 class EventSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
+    dates = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -33,3 +34,5 @@ class EventSerializer(serializers.ModelSerializer):
         image_urls = [request.build_absolute_uri(image.image.url) for image in obj.images.all()]
         return image_urls
     
+    def get_dates(self, obj):
+        return sorted([ed.date.strftime("%Y-%m-%d") for ed in obj.event_dates.all()])
