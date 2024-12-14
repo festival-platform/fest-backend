@@ -37,6 +37,8 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    'modeltranslation',
+    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -160,3 +162,11 @@ DJANGO_MONEY_DEFAULT_CURRENCY = 'EUR'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+LANGUAGES = (
+    ('en', 'English'),
+    ('de', 'German'), 
+)
+
+MODELTRANSLATION_DEFAULT_LANGUAGE = 'en'

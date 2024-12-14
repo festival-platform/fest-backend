@@ -1,20 +1,13 @@
+# admin.py
+
 from django.contrib import admin
-from django.forms import ModelForm
 from django.utils.html import format_html
+from modeltranslation.admin import TranslationAdmin, TranslationTabularInline
 from .models import Event, EventImage, EventDate, Booking
-
-
-class EventAdminForm(ModelForm):
-    class Meta:
-        model = Event
-        fields = '__all__'
-        # Можно добавить виджеты, если нужно кастомизировать
-
 
 class EventDateInline(admin.TabularInline):
     model = EventDate
     extra = 1
-
 
 class EventImageInline(admin.TabularInline):
     model = EventImage
@@ -28,14 +21,17 @@ class EventImageInline(admin.TabularInline):
         return "No Image"
     thumbnail.short_description = "Preview"
 
-
 @admin.register(Event)
-class EventAdmin(admin.ModelAdmin):
-    form = EventAdminForm
+class EventAdmin(TranslationAdmin):  # Наследуемся от TranslationAdmin
     inlines = [EventDateInline, EventImageInline]
-    list_display = ('name', 'price')
-    search_fields = ('name',)
-
+    list_display = ('name', 'price')  # 'name' будет отображать на текущем языке
+    search_fields = ('name',)  # Поиск по переведенным полям
+    # Опционально: определите поля, если необходимо
+    fields = (
+        'name',
+        'description',
+        'price',
+    )
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):

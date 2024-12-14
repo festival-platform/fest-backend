@@ -1,6 +1,5 @@
 from rest_framework import serializers
-from .models import Event, EventImage
-
+from .models import Event
 
 class EventDatesSerializer(serializers.Serializer):
     """
@@ -20,12 +19,12 @@ class EventSerializer(serializers.ModelSerializer):
         model = Event
         fields = (
             'event_id',
-            'name',
-            'description',
+            'name_en',
+            'name_de',
+            'description_en',
+            'description_de',
             'dates',
             'price',
-            'capacity',
-            'booked_seats',
             'images',
         )
 
@@ -33,6 +32,6 @@ class EventSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         image_urls = [request.build_absolute_uri(image.image.url) for image in obj.images.all()]
         return image_urls
-    
+
     def get_dates(self, obj):
         return sorted([ed.date.strftime("%Y-%m-%d") for ed in obj.event_dates.all()])
