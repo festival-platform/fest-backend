@@ -7,4 +7,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),  # Админ-панель Django
     path('api/', include('events.urls')),  # Маршруты приложения 'events'
     path('api/about/', include('about.urls')),
+    path('api/contacts/', include('contacts.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

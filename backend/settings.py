@@ -54,7 +54,8 @@ INSTALLED_APPS = [
     
     # Наши приложения
     'events',
-    'about'
+    'about',
+    'contacts',
 ]
 
 MIDDLEWARE = [
