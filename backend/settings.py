@@ -38,7 +38,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 INSTALLED_APPS = [
     'modeltranslation',
-    
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     
     # Наши приложения
     'events',
+    'about'
 ]
 
 MIDDLEWARE = [
