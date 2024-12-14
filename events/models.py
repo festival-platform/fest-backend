@@ -50,8 +50,8 @@ class Event(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     price = MoneyField(max_digits=14, decimal_places=2, default_currency='EUR')
-    capacity = models.PositiveIntegerField()
-    booked_seats = models.PositiveIntegerField(default=0)
+    # capacity = models.PositiveIntegerField()
+    # booked_seats = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.name
@@ -63,6 +63,8 @@ class EventDate(models.Model):
     """
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='event_dates')
     date = models.DateField()
+    capacity = models.PositiveIntegerField()
+    booked_seats = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return str(self.date)
@@ -118,20 +120,23 @@ class Booking(models.Model):
     """
     Модель бронирования.
 
-    Связывает пользователя с мероприятием и содержит информацию о дате бронирования и статусе оплаты.
+    Связывает пользователя с мероприятием и содержит информацию о дате бронирования, статусе оплаты, 
+    и количество забронированных мест.
 
     Поля:
         booking_id (AutoField): Уникальный идентификатор бронирования (автоинкремент).
         user (ForeignKey): Ссылка на пользователя, который сделал бронирование.
-        event (ForeignKey): Ссылка на мероприятие, на которое сделано бронирование.
-        date (DateField): Дата мероприятия, на которую сделано бронирование.
-        payment_status (BooleanField): Статус оплаты бронирования (True - оплачено, False - не оплачено).
+        event (ForeignKey): Ссылка на мероприятие.
+        date (DateField): Дата мероприятия.
+        payment_status (BooleanField): Статус оплаты.
+        quantity (PositiveIntegerField): Количество забронированных мест в рамках одного бронирования.
     """
     booking_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='bookings')
     date = models.DateField()
     payment_status = models.BooleanField(default=False)
+    quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):
         return f"{self.user} - {self.event.name} on {self.date}"
