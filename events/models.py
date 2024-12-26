@@ -2,24 +2,42 @@ from django.db import models
 from djmoney.models.fields import MoneyField
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
+from django.core.validators import EmailValidator, RegexValidator
 
 
 class User(models.Model):
     """
     Модель пользователя.
 
-    Наследуется от AbstractUser и расширяет стандартные поля пользователя.
-
     Поля:
         user_id (AutoField): Уникальный идентификатор пользователя (автоинкремент).
         first_name (CharField): Имя пользователя.
         last_name (CharField): Фамилия пользователя.
+        email (EmailField): Email пользователя (уникальный, используется для идентификации).
+        phone (CharField): Номер телефона пользователя (опционально).
         booked_dates (ArrayField): Список дат, на которые пользователь уже записан.
         bookings (RelatedManager): Связанные бронирования пользователя через модель Booking.
     """
     user_id = models.AutoField(primary_key=True)
     first_name = models.CharField(max_length=150)
     last_name = models.CharField(max_length=150)
+    email = models.EmailField(
+        unique=True,
+        validators=[EmailValidator()],
+        help_text="Email пользователя. Используется для идентификации."
+    )
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        validators=[
+            RegexValidator(
+                regex=r'^\+?1?\d{9,15}$',
+                message="Номер телефона должен быть в формате: '+999999999'. Допустимо до 15 цифр."
+            )
+        ],
+        help_text="Номер телефона пользователя."
+    )
     booked_dates = ArrayField(
         models.DateField(),
         blank=True,
@@ -28,7 +46,7 @@ class User(models.Model):
     )
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return f"{self.first_name} {self.last_name} ({self.email})"
 
 
 class Event(models.Model):

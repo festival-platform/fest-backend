@@ -35,3 +35,27 @@ class EventSerializer(serializers.ModelSerializer):
 
     def get_dates(self, obj):
         return sorted([ed.date.strftime("%Y-%m-%d") for ed in obj.event_dates.all()])
+    
+
+class BookingPaymentSerializer(serializers.Serializer):
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    event_id = serializers.IntegerField()
+    date = serializers.DateField()
+    quantity = serializers.IntegerField(min_value=1)
+    # email = serializers.EmailField()  # Добавляем email для связи с пользователем (опционально)
+    # phone = serializers.CharField(max_length=20, required=False)  # Добавляем телефон (опционально)
+
+    def validate_event_id(self, value):
+        if not Event.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Мероприятие не существует.")
+        return value
+
+    def validate_date(self, value):
+        # Дополнительная валидация даты, если необходимо
+        return value
+
+    def validate_quantity(self, value):
+        if value < 1:
+            raise serializers.ValidationError("Количество человек должно быть хотя бы 1.")
+        return value
