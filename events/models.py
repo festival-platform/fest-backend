@@ -147,6 +147,7 @@ class Booking(models.Model):
         event (ForeignKey): Ссылка на мероприятие.
         date (DateField): Дата мероприятия.
         payment_status (BooleanField): Статус оплаты.
+        stripe_payment_intent_id(CharField): ID платежа в Stripe.
         quantity (PositiveIntegerField): Количество забронированных мест в рамках одного бронирования.
     """
     booking_id = models.AutoField(primary_key=True)
@@ -154,6 +155,7 @@ class Booking(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='bookings')
     date = models.DateField()
     payment_status = models.BooleanField(default=False)
+    stripe_payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
     quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):

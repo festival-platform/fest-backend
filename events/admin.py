@@ -50,3 +50,6 @@ class BookingAdmin(admin.ModelAdmin):
     
     # Поля для редактирования прямо из списка, если нужно
     list_editable = ('payment_status',)
+    
+    # Не редактируемые поля
+    readonly_fields=("stripe_payment_intent_id",)
