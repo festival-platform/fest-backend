@@ -158,6 +158,7 @@ class Booking(models.Model):
     date = models.DateField()
     payment_status = models.BooleanField(default=False)
     stripe_payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
+    paypal_payment_id = models.CharField(max_length=255, blank=True, null=True)
     quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):

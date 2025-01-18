@@ -52,4 +52,4 @@ class BookingAdmin(admin.ModelAdmin):
     list_editable = ('payment_status',)
     
     # Не редактируемые поля
-    readonly_fields=("stripe_payment_intent_id",)
+    readonly_fields=("stripe_payment_intent_id", "paypal_payment_id")
