@@ -124,11 +124,13 @@ class Review(models.Model):
         author (CharField): Имя автора отзыва.
         text (TextField): Текст отзыва.
         stars (PositiveIntegerField): Количество звезд (оценка) отзыва.
+        event (ForeignKey): Ссылка на мероприятие, к которому относится отзыв.
     """
     review_id = models.AutoField(primary_key=True)
     author = models.CharField(max_length=255)
     text = models.TextField()
     stars = models.PositiveIntegerField(validators=[validate_stars])
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='reviews')  # Добавлено поле event
 
     def __str__(self):
         return f"Отзыв от {self.author}"

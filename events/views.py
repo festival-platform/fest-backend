@@ -1,18 +1,16 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db import transaction
-from .models import Event, EventDate, User, Booking
-from .serializers import EventDatesSerializer, EventSerializer
+from .models import Event, EventDate, User, Booking, Review
+from .serializers import EventDatesSerializer, EventSerializer, ReviewSerializer
 
 import stripe
 from backend.settings import STRIPE_SECRET_KEY
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from django.db import transaction
-from .models import Booking, EventDate, User, Event
-from .serializers import BookingPaymentSerializer
 from django.core.mail import send_mail  # Для отправки подтверждений (опционально)
+from django.db import IntegrityError, DatabaseError
 
 stripe.api_key = STRIPE_SECRET_KEY # Секретный ключ Stripe
 
@@ -47,6 +45,52 @@ def event_detail(request, event_id):
 
     serializer = EventSerializer(event, context={'request': request})
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+def create_review(request):
+    """
+    Создаёт новый отзыв.
+    Ожидаемый JSON:
+    {
+        "author": "Имя автора",
+        "text": "Текст отзыва",
+        "stars": 5,
+        "event": 1
+    }
+    """
+    try:
+        serializer = ReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)  # Автоматически вызывает ValidationError
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    except IntegrityError as ie:
+        # Ошибки целостности базы данных
+        return Response({'error': 'Ошибка целостности данных: ' + str(ie)}, status=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as de:
+        # Общие ошибки базы данных
+        return Response({'error': 'Ошибка базы данных: ' + str(de)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        # Все прочие исключения
+        return Response({'error': 'Неизвестная ошибка: ' + str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def list_reviews(request, event_id=None):
+    """
+    Возвращает список всех отзывов или отзывов для конкретного мероприятия.
+    """
+    try:
+        if event_id:
+            reviews = Review.objects.filter(event__event_id=event_id)
+        else:
+            reviews = Review.objects.all()
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except DatabaseError as de:
+        return Response({'error': 'Ошибка базы данных: ' + str(de)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return Response({'error': 'Неизвестная ошибка: ' + str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Event
+from .models import Event, Review
 
 class EventDatesSerializer(serializers.Serializer):
     """
@@ -59,3 +59,9 @@ class BookingPaymentSerializer(serializers.Serializer):
         if value < 1:
             raise serializers.ValidationError("Количество человек должно быть хотя бы 1.")
         return value
+    
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['review_id', 'author', 'text', 'stars', 'event']
