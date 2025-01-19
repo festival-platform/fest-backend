@@ -66,7 +66,7 @@ def send_organizer_notification_email(event_name: str, event_date: str, quantity
     )
     
     from_email = 'info@oktoberfesttour.com'  
-    recipient_list = ["juliesoktoberfesttours@hotmail.com", "s5003626@gmail.com"]
+    recipient_list = ["juliesoktoberfesttours@hotmail.com",]
     
     send_mail(
         subject=subject,
