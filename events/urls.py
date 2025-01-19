@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import get_dates, event_detail, book_event, create_review, list_reviews
+from .views import get_dates, event_detail, book_event, create_review, list_reviews, stripe_webhook
 
 
 urlpatterns = [
@@ -10,4 +10,5 @@ urlpatterns = [
     path('reviews/', list_reviews, name='list_reviews'),
     path('reviews/create/', create_review, name='create_review'),
     path('events/<int:event_id>/reviews/', list_reviews, name='list_reviews_by_event'),
+    path('stripe/webhook/', stripe_webhook, name='stripe_webhook'),
 ]

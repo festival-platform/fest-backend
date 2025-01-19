@@ -31,7 +31,7 @@ STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY") # Секретный ключ
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY") # Публичный ключ Stripe
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET") # Секретный ключ Stripe для вебхуков
 
-#====Paypal====#
+#====Paypal====
 import paypalrestsdk
 
 paypalrestsdk.configure({
@@ -184,3 +184,12 @@ LANGUAGES = (
 )
 
 MODELTRANSLATION_DEFAULT_LANGUAGE = 'en'
+
+
+#====Mail settings====
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.your-server.de'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
