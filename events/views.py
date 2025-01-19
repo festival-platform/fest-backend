@@ -208,6 +208,7 @@ def book_event(request, event_id):
     elif payment_provider == 'paypal':
         # ====== Создаём PayPal Order (или Payment) ======
         # Вариант 1: Использовать класс Payment из paypalrestsdk
+        
         payment = paypalrestsdk.Payment({
             "intent": "sale",
             "payer": {
