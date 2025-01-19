@@ -50,7 +50,6 @@ def event_detail(request, event_id):
 def create_review(request):
     """
     Создаёт новый отзыв.
-    Ожидаемый JSON:
     {
         "author": "Имя автора",
         "text": "Текст отзыва",
