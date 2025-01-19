@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Buchungsbestätigung</title>
+</head>
+<body>
+    <h1>Buchungsbestätigung</h1>
+    <p>Sehr geehrte/r {{ user_name }},</p>
+    <p>Vielen Dank für Ihre Buchung von <strong>{{ event_name }}</strong>.</p>
+    <p>Hier sind Ihre Buchungsdetails:</p>
+    <ul>
+        <li><strong>Veranstaltung:</strong> {{ event_name }}</li>
+        <li><strong>Datum:</strong> {{ event_date }}</li>
+        <li><strong>Anzahl Personen:</strong> {{ booking_quantity }}</li>
+    </ul>
+    <p>Bei weiteren Fragen kontaktieren Sie uns bitte unter <strong>{{ organizer_email }}</strong>.</p>
+    <p>Wir freuen uns darauf, Sie begrüßen zu dürfen!</p>
+    <p>Mit freundlichen Grüßen,</p>
+    <p><strong>Ihr Veranstaltungsteam</strong></p>
+</body>
+</html>

@@ -2,6 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Event, Review
 from .serializers import EventDatesSerializer, EventSerializer, ReviewSerializer
+from utils import send_booking_confirmation_email, send_organizer_notification_email
 
 import stripe
 from backend.settings import STRIPE_SECRET_KEY, paypalrestsdk
@@ -270,7 +271,6 @@ def book_event(request, event_id):
     
 
 
-
 STRIPE_WEBHOOK_SECRET = "whsec_..."  # Секретный ключ Stripe для вебхуков
 # @csrf_exempt
 @api_view(["POST"])
@@ -307,8 +307,21 @@ def stripe_webhook(request):
             booking = Booking.objects.get(stripe_payment_intent_id=payment_intent_id)
             booking.payment_status = True
             booking.save()
-            print("успех")
-            # Здесь можно отправить письмо пользователю, записать лог и т.д.
+            
+            # Отправляем письма
+            send_booking_confirmation_email(
+                recipient_email=booking.user.email,
+                user_name=f"{booking.user.first_name} {booking.user.last_name}",
+                event_name=booking.event.name,
+                event_date=booking.date.strftime("%d %B %Y"),  # Пример: 01 January 2025
+                quantity=booking.quantity
+            )
+            send_organizer_notification_email(
+                event_name=booking.event.name,
+                event_date=booking.date.strftime("%d %B %Y"),
+                quantity=booking.quantity
+            )
+
         except Booking.DoesNotExist:
             # Если почему-то не нашли Booking, можно залогировать
             print("не нашелся букинг")
