@@ -5,7 +5,7 @@ from .serializers import EventDatesSerializer, EventSerializer, ReviewSerializer
 from utils import send_booking_confirmation_email, send_organizer_notification_email
 
 import stripe
-from backend.settings import STRIPE_SECRET_KEY, paypalrestsdk
+from backend.settings import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, paypalrestsdk
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -270,8 +270,6 @@ def book_event(request, event_id):
         return Response({"error": "Неверный payment_provider"}, status=400)
     
 
-
-STRIPE_WEBHOOK_SECRET = "whsec_..."  # Секретный ключ Stripe для вебхуков
 # @csrf_exempt
 @api_view(["POST"])
 def stripe_webhook(request):
