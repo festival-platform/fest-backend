@@ -268,3 +268,60 @@ def book_event(request, event_id):
     else:
         return Response({"error": "Неверный payment_provider"}, status=400)
     
+
+
+
+STRIPE_WEBHOOK_SECRET = "whsec_..."  # Секретный ключ Stripe для вебхуков
+# @csrf_exempt
+@api_view(["POST"])
+def stripe_webhook(request):
+    """
+    Эндпоинт для приёма уведомлений (webhook) от Stripe в тестовом/боевом режиме.
+    """
+    from .models import Booking
+
+    payload = request.body
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
+
+    try:
+        # Проверяем подпись, чтобы убедиться, что событие пришло действительно от Stripe
+        event = stripe.Webhook.construct_event(
+            payload=payload,
+            sig_header=sig_header,
+            secret=STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        # Invalid payload
+        return Response({"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
+    except stripe.error.SignatureVerificationError:
+        # Invalid signature
+        return Response({"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Обрабатываем тип события (event["type"])
+    event_type = event["type"]
+    data_object = event["data"]["object"]  # Основной объект в событии
+
+    if event_type == "payment_intent.succeeded":
+        payment_intent_id = data_object["id"]
+        try:
+            booking = Booking.objects.get(stripe_payment_intent_id=payment_intent_id)
+            booking.payment_status = True
+            booking.save()
+            print("успех")
+            # Здесь можно отправить письмо пользователю, записать лог и т.д.
+        except Booking.DoesNotExist:
+            # Если почему-то не нашли Booking, можно залогировать
+            print("не нашелся букинг")
+            pass
+
+    elif event_type == "payment_intent.payment_failed":
+        payment_intent_id = data_object["id"]
+        print("неудача")
+
+        # Аналогично: можно найти booking, зафиксировать ошибку, уведомить пользователя и т.п.
+
+    # Можно обработать и другие события (refund, partial payment и т.д.)
+
+    # Возвращаем 200 OK, чтобы Stripe понял, что мы приняли событие
+    return Response(status=status.HTTP_200_OK)
+
