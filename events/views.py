@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Event, Review
 from .serializers import EventDatesSerializer, EventSerializer, ReviewSerializer
-from utils import send_booking_confirmation_email, send_organizer_notification_email
+from events.utils import send_booking_confirmation_email, send_organizer_notification_email
 
 import stripe
 from backend.settings import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, paypalrestsdk
