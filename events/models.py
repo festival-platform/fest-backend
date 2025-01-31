@@ -3,6 +3,8 @@ from djmoney.models.fields import MoneyField
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator, RegexValidator
+from djmoney.money import Money
+
 
 
 class User(models.Model):
@@ -48,44 +50,60 @@ class User(models.Model):
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.email})"
 
-
 class Event(models.Model):
-    """
-    Модель мероприятия.
-
-    Представляет собой событие, на которое пользователи могут бронировать места.
-
-    Поля:
-        event_id (AutoField): Уникальный идентификатор мероприятия (автоинкремент).
-        name (CharField): Название мероприятия.
-        description (TextField): Описание мероприятия.
-        dates (ArrayField): Список доступных дат для бронирования.
-        price (MoneyField): Цена за участие в мероприятии.
-        capacity (PositiveIntegerField): Общая вместимость мероприятия.
-        booked_seats (PositiveIntegerField): Количество уже забронированных мест.
-    """
     event_id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
-    price = MoneyField(max_digits=14, decimal_places=2, default_currency='EUR')
-    # capacity = models.PositiveIntegerField()
-    # booked_seats = models.PositiveIntegerField(default=0)
+    
+    name_en = models.CharField('Name [en]', max_length=255, blank=True, null=True)
+    name_de = models.CharField('Name [de]', max_length=255, blank=True, null=True)
+    
+    description_en = models.TextField('Description [en]', blank=True, null=True)
+    description_de = models.TextField('Description [de]', blank=True, null=True)
+    
+    # Фиксированные цены для разных слотов
+    morning_price = MoneyField(
+        max_digits=14,
+        decimal_places=2,
+        default_currency='EUR',
+        default=Money(20, 'EUR'),
+        help_text= "Цена для утреннего слота"
+    )
+    afternoon_price = MoneyField(
+        max_digits=14,
+        decimal_places=2,
+        default_currency='EUR',
+        default=Money(25, 'EUR'),
+        help_text="Цена для дневного слота"
+    )
+    evening_price = MoneyField(
+        max_digits=14,
+        decimal_places=2,
+        default_currency='EUR',
+        default=Money(30, 'EUR'),
+        help_text="Цена для вечернего слота"
+    )
 
     def __str__(self):
-        return self.name
+        return self.name_en or 'No name'
     
 
 class EventDate(models.Model):
-    """
-    Модель даты мероприятия
-    """
+    TIME_SLOT_CHOICES = [
+        ('morning', 'Утро'),
+        ('afternoon', 'День'),
+        ('evening', 'Вечер'),
+    ]
+
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='event_dates')
     date = models.DateField()
+    time_slot = models.CharField(max_length=20, choices=TIME_SLOT_CHOICES, default='morning')
     capacity = models.PositiveIntegerField()
     booked_seats = models.PositiveIntegerField(default=0)
 
+    class Meta:
+        unique_together = ('event', 'date', 'time_slot')
+
     def __str__(self):
-        return str(self.date)
+        return f"{self.date} ({self.get_time_slot_display()})"
     
 
 class EventImage(models.Model):
@@ -102,7 +120,7 @@ class EventImage(models.Model):
     image = models.ImageField(upload_to='event_images/')
 
     def __str__(self):
-        return f"Image for {self.event.name}"
+        return f"Image for {self.event.name_en}"
 
 
 def validate_stars(value):
@@ -147,7 +165,7 @@ class Booking(models.Model):
         booking_id (AutoField): Уникальный идентификатор бронирования (автоинкремент).
         user (ForeignKey): Ссылка на пользователя, который сделал бронирование.
         event (ForeignKey): Ссылка на мероприятие.
-        date (DateField): Дата мероприятия.
+        event_date (ForeignKey) : Ссылка на дату мероприятия.
         payment_status (BooleanField): Статус оплаты.
         stripe_payment_intent_id(CharField): ID платежа в Stripe.
         quantity (PositiveIntegerField): Количество забронированных мест в рамках одного бронирования.
@@ -155,12 +173,12 @@ class Booking(models.Model):
     booking_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='bookings')
-    date = models.DateField()
+    event_date = models.ForeignKey(EventDate, on_delete=models.CASCADE, related_name='bookings', null=True, blank=True)  # Изменено
     payment_status = models.BooleanField(default=False)
     stripe_payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
     paypal_payment_id = models.CharField(max_length=255, blank=True, null=True)
     quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):
-        return f"{self.user} - {self.event.name} on {self.date}"
+        return f"{self.user} - {self.event.name_en} on {self.event_date}"
     
