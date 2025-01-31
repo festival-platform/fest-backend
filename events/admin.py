@@ -4,10 +4,13 @@ from django.contrib import admin
 from django.utils.html import format_html
 from modeltranslation.admin import TranslationAdmin, TranslationTabularInline
 from .models import Event, EventImage, EventDate, Booking
+from .forms import EventAdminForm
 
 class EventDateInline(admin.TabularInline):
     model = EventDate
     extra = 1
+    fields = ('date', 'time_slot', 'capacity', 'booked_seats')
+    readonly_fields = ('booked_seats',)
 
 class EventImageInline(admin.TabularInline):
     model = EventImage
@@ -22,34 +25,54 @@ class EventImageInline(admin.TabularInline):
     thumbnail.short_description = "Preview"
 
 @admin.register(Event)
-class EventAdmin(TranslationAdmin):  # Наследуемся от TranslationAdmin
+class EventAdmin(admin.ModelAdmin):
+    form = EventAdminForm
     inlines = [EventDateInline, EventImageInline]
-    list_display = ('name', 'price')  # 'name' будет отображать на текущем языке
-    search_fields = ('name',)  # Поиск по переведенным полям
-    # Опционально: определите поля, если необходимо
+    
+    list_display = ('name_en', 'morning_price', 'afternoon_price', 'evening_price')
+    search_fields = ('name_en', 'name_de')
+    
     fields = (
-        'name',
-        'description',
-        'price',
+        'name_en',
+        'name_de',
+        'description_en',
+        'description_de',
+        'morning_price',
+        'afternoon_price',
+        'evening_price',
     )
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    # Отображаем поля бронирования в списке
     list_display = (
         'booking_id',
-        'user',         # показывает пользователя, сделавшего бронирование
-        'event',        # показывает мероприятие
-        'date',         # на какую дату забронировали
-        'quantity',     # сколько мест забронировано
+        'user',
+        'event',
+        'event_date',
+        'quantity',
+        'total_price',  # добавлено: метод для отображения цены
         'payment_status'
     )
-    
-    # Поиск по имени и фамилии пользователя и названию события
     search_fields = ('user__first_name', 'user__last_name', 'event__name')
-    
-    # Поля для редактирования прямо из списка, если нужно
     list_editable = ('payment_status',)
-    
-    # Не редактируемые поля
-    readonly_fields=("stripe_payment_intent_id", "paypal_payment_id")
+    readonly_fields = ("stripe_payment_intent_id", "paypal_payment_id", "total_price")
+
+    def total_price(self, obj):
+        """
+        Вычисляет общую стоимость бронирования, исходя из выбранного временного слота и количества.
+        """
+        if obj.event_date and obj.event:
+            slot = obj.event_date.time_slot
+            if slot == 'morning':
+                price = obj.event.morning_price
+            elif slot == 'afternoon':
+                price = obj.event.afternoon_price
+            elif slot == 'evening':
+                price = obj.event.evening_price
+            else:
+                return "-"
+            total = price * obj.quantity  # Умножение объектов Money поддерживается djmoney
+            return total  # возвращает объект Money (например, EUR 40.00)
+        return "-"
+
+    total_price.short_description = "Цена бронирования"

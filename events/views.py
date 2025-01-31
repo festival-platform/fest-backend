@@ -1,8 +1,8 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Event, Review
-from .serializers import EventDatesSerializer, EventSerializer, ReviewSerializer
-from utils import send_booking_confirmation_email, send_organizer_notification_email
+from .serializers import EventDateSerializer, EventSerializer, ReviewSerializer, BookingPaymentSerializer
+from events.utils import send_booking_confirmation_email, send_organizer_notification_email
 
 import stripe
 from backend.settings import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, paypalrestsdk
@@ -17,8 +17,7 @@ stripe.api_key = STRIPE_SECRET_KEY # Секретный ключ Stripe
 @api_view(["GET"])
 def get_dates(request, event_id):
     """
-    Выдает все даты на определенный Event.
-
+    Выдает все EventDate на определенный Event.
     URL: /api/events/{event_id}/dates/
     """
     try:
@@ -26,8 +25,8 @@ def get_dates(request, event_id):
     except Event.DoesNotExist:
         return Response({"error": "Event not found"}, status=404)
 
-    dates = sorted([ed.date for ed in event.event_dates.all()])
-    serializer = EventDatesSerializer({"dates": dates})
+    event_dates = event.event_dates.all().order_by('date', 'time_slot')
+    serializer = EventDateSerializer(event_dates, many=True)
     return Response(serializer.data)
 
 
@@ -95,49 +94,48 @@ def list_reviews(request, event_id=None):
 @api_view(['POST'])
 def book_event(request, event_id):
     """
-    Позволяет забронировать несколько мест на конкретную дату события.
+    Позволяет забронировать несколько мест на конкретный временной слот мероприятия.
+    Ожидаемый JSON:
     {
        "first_name": "Имя",
        "last_name": "Фамилия",
        "email": "уникальный@адрес.домен",
-       "date": "YYYY-MM-DD",
+       "event_date_id": 19,
        "quantity": 3,
        "payment_provider": "stripe"  # или "paypal"
     }
     """
     from django.db import transaction
-    from django.utils.dateparse import parse_date
     from .models import Event, EventDate, User, Booking
 
-    first_name = request.data.get('first_name')
-    last_name = request.data.get('last_name')
-    email = request.data.get('email')
-    date_str = request.data.get('date')
-    quantity = request.data.get('quantity')
-    payment_provider = request.data.get('payment_provider', 'stripe')  # по умолчанию stripe
+    # Получаем данные из запроса через сериализатор (он уже проверяет наличие event_date_id)
+    from .serializers import BookingPaymentSerializer
+    serializer = BookingPaymentSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+    data = serializer.validated_data
 
-    chosen_date = parse_date(date_str)
-    try:
-        quantity = int(quantity)
-    except (TypeError, ValueError):
-        return Response({"error": "quantity должен быть числом."}, status=400)
-
-    if not (first_name and last_name and email and chosen_date and quantity):
-        return Response({"error": "Необходимо передать first_name, last_name, email, date и quantity."}, status=400)
+    first_name = data['first_name']
+    last_name = data['last_name']
+    email = data['email']
+    event_date_id = data['event_date_id']
+    quantity = data['quantity']
+    payment_provider = data.get('payment_provider', 'stripe')
 
     if quantity <= 0:
         return Response({"error": "quantity должен быть положительным."}, status=400)
 
+    # Находим событие по event_id
     try:
         event = Event.objects.get(event_id=event_id)
     except Event.DoesNotExist:
         return Response({"error": "Event not found"}, status=404)
 
-    # Находим конкретный EventDate
+    # Находим конкретный временной слот (EventDate) по переданному event_date_id и привязываем его к событию
     try:
-        event_date = EventDate.objects.get(event=event, date=chosen_date)
+        event_date = EventDate.objects.get(id=event_date_id, event=event)
     except EventDate.DoesNotExist:
-        return Response({"error": "Данная дата недоступна для выбранного события."}, status=400)
+        return Response({"error": "Временной промежуток недоступен для выбранного события."}, status=400)
 
     available_seats = event_date.capacity - event_date.booked_seats
     if quantity > available_seats:
@@ -146,10 +144,10 @@ def book_event(request, event_id):
     # Ищем или создаем пользователя
     try:
         user = User.objects.get(email=email)
-        # можно обновлять данные, если хотите:
-        # user.first_name = first_name
-        # user.last_name = last_name
-        # user.save()
+        # При необходимости можно обновлять имя и фамилию:
+        user.first_name = first_name
+        user.last_name = last_name
+        user.save()
     except User.DoesNotExist:
         user = User.objects.create(
             first_name=first_name,
@@ -158,30 +156,39 @@ def book_event(request, event_id):
         )
 
     with transaction.atomic():
-        # Блокируем запись даты события для избежания гонок
-        event_date = EventDate.objects.select_for_update().get(event=event, date=chosen_date)
+        # Блокируем запись выбранного временного слота для избежания гонок
+        event_date = EventDate.objects.select_for_update().get(id=event_date_id, event=event)
         available_seats = event_date.capacity - event_date.booked_seats
         if quantity > available_seats:
             return Response({"error": "Недостаточно мест. Попробуйте другое количество."}, status=400)
 
+        # Создаем бронирование с привязкой к конкретному временному слоту
         booking = Booking.objects.create(
             user=user,
             event=event,
-            date=chosen_date,
-            payment_status=False,  # Оплата пока не произведена
+            event_date=event_date,
+            payment_status=False,
             quantity=quantity
         )
         event_date.booked_seats += quantity
         event_date.save()
 
-    # Рассчитываем общую сумму (допустим, price – это decimal в EUR)
-    price_in_cents = int(event.price.amount * 100)
-    total_amount_cents = price_in_cents * quantity
-    total_amount_eur = total_amount_cents / 100.0  # для PayPal может понадобиться строка типа "12.34"
+    # Определяем цену в зависимости от временного слота
+    if event_date.time_slot == 'morning':
+        slot_price = event.morning_price
+    elif event_date.time_slot == 'afternoon':
+        slot_price = event.afternoon_price
+    elif event_date.time_slot == 'evening':
+        slot_price = event.evening_price
+    else:
+        return Response({"error": "Неверный временной слот."}, status=400)
 
-    # В зависимости от провайдера генерируем платёж
+    price_in_cents = int(slot_price.amount * 100)
+    total_amount_cents = price_in_cents * quantity
+    total_amount_eur = total_amount_cents / 100.0  # Для передачи в платёжные системы (например, строка "12.34")
+
+    # Генерируем платёж в зависимости от выбранного провайдера
     if payment_provider == 'stripe':
-        # ====== Создаем PaymentIntent в Stripe ======
         try:
             payment_intent = stripe.PaymentIntent.create(
                 amount=total_amount_cents,
@@ -190,72 +197,64 @@ def book_event(request, event_id):
             )
             booking.stripe_payment_intent_id = payment_intent["id"]
             booking.save()
-            
+
             client_secret = payment_intent["client_secret"]
             return Response({
                 "message": "Вы успешно забронировали места (Stripe).",
                 "booking_id": booking.booking_id,
                 "event_id": event.event_id,
-                "date": chosen_date.strftime("%Y-%m-%d"),
+                "event_date_id": event_date.id,
                 "quantity": quantity,
                 "payment_status": booking.payment_status,
                 "payment_provider": "stripe",
                 "client_secret": client_secret
             }, status=201)
-            
+
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 
     elif payment_provider == 'paypal':
-        # ====== Создаём PayPal Order (или Payment) ======
-        # Вариант 1: Использовать класс Payment из paypalrestsdk
-        
         payment = paypalrestsdk.Payment({
             "intent": "sale",
             "payer": {
                 "payment_method": "paypal"
             },
             "redirect_urls": {
-                # Куда PayPal вернёт юзера при успехе/отказе
                 "return_url": "https://example.com/paypal/return",
                 "cancel_url": "https://example.com/paypal/cancel"
             },
             "transactions": [{
                 "item_list": {
                     "items": [{
-                        "name": str(event.name),
+                        "name": event.name_en or event.name_de,
                         "sku": str(event.event_id),
-                        "price": str(total_amount_eur),  # цена за всё сразу или за 1 место
+                        "price": f"{total_amount_eur:.2f}",
                         "currency": "EUR",
-                        "quantity": 1  # если хотим одной строкой, тогда quantity=1, price=total
+                        "quantity": 1
                     }]
                 },
                 "amount": {
-                    "total": f"{total_amount_eur:.2f}",  # c двумя знаками
+                    "total": f"{total_amount_eur:.2f}",
                     "currency": "EUR"
                 },
-                "description": f"Booking for event {event.name}"
+                "description": f"Booking for event {event.name_en or event.name_de}"
             }]
         })
 
         if payment.create():
-            # Получаем ссылки, чтобы перенаправить пользователя
-            approval_url = None
-            for link in payment.links:
-                if link.method == "REDIRECT" and link.rel == "approval_url":
-                    approval_url = str(link.href)
-                    break
-            
-            # Сохраняем в booking PayPal ID платежа
+            approval_url = next(
+                (link.href for link in payment.links if link.method == "REDIRECT" and link.rel == "approval_url"),
+                None
+            )
             booking.paypal_payment_id = payment.id
             booking.save()
-            
+
             if approval_url:
                 return Response({
                     "message": "Вы успешно забронировали места (PayPal).",
                     "booking_id": booking.booking_id,
                     "event_id": event.event_id,
-                    "date": chosen_date.strftime("%Y-%m-%d"),
+                    "event_date_id": event_date.id,
                     "quantity": quantity,
                     "payment_status": booking.payment_status,
                     "payment_provider": "paypal",
@@ -265,7 +264,7 @@ def book_event(request, event_id):
                 return Response({"error": "Не удалось получить approval_url от PayPal."}, status=400)
         else:
             return Response({"error": payment.error}, status=400)
-        
+
     else:
         return Response({"error": "Неверный payment_provider"}, status=400)
     
